@@ -46,6 +46,17 @@ static std::optional<std::pair<RedisType::RedisValue, size_t>> extractFrameFromB
             RedisType::Integer result{std::stoll(payload)};
             return std::make_pair(result, separator + MSG_SEPARATOR_SIZE);
         }
+        case '$': {
+            int length = std::stoi(payload);
+
+            if (length == -1) {
+                return std::make_pair(RedisType::BulkString{std::nullopt}, separator + 5);
+            }
+
+            size_t endOfMessage = separator + 2 + length;
+            std::vector<uint8_t> data(buffer.begin() + static_cast<long>(separator) + 2, buffer.begin() + static_cast<long>(endOfMessage));
+            return std::make_pair(RedisType::BulkString{data}, endOfMessage + MSG_SEPARATOR_SIZE);
+        }
         default:
             return {};
     }
