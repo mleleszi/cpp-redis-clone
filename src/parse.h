@@ -24,6 +24,10 @@ static std::string extractStringFromBytes(const std::vector<uint8_t> &buffer, si
     return {buffer.begin() + static_cast<long>(start), buffer.begin() + static_cast<long>(start) + static_cast<long>(length)};
 }
 
+static std::vector<uint8_t> stringToByteVector(const std::string &str) {
+    return {str.begin(), str.end()};
+}
+
 static std::optional<std::pair<RedisType::RedisValue, size_t>> parseMessage(const std::vector<uint8_t> &buffer) {
     size_t separator = findSeparator(buffer);
 

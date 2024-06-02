@@ -3,9 +3,6 @@
 #include "parse.h"
 #include "redis_type.h"
 
-std::vector<uint8_t> stringToByteVector(const std::string &str) {
-    return {str.begin(), str.end()};
-}
 
 int main() {
     std::string buffer_str = "+OK\r\n";
