@@ -10,21 +10,21 @@ std::vector<uint8_t> stringToByteVector(const std::string &str) {
 int main() {
     std::string buffer_str = "+OK\r\n";
     auto buffer = stringToByteVector(buffer_str);
-    auto result = extractFrameFromBuffer(buffer);
+    auto result = parseMessage(buffer);
 
     std::cout << std::holds_alternative<RedisType::SimpleString>(result->first) << std::endl;
     std::cout << std::get<RedisType::SimpleString>(result->first).data << std::endl;
 
     std::string buffer_str2 = ":-123\r\n";
     auto buffer2 = stringToByteVector(buffer_str2);
-    auto result2 = extractFrameFromBuffer(buffer2);
+    auto result2 = parseMessage(buffer2);
 
     std::cout << std::holds_alternative<RedisType::Integer>(result2->first) << std::endl;
     std::cout << std::get<RedisType::Integer>(result2->first).data << std::endl;
 
     std::string buffer_str3 = "$5\r\nHello\r\n";
     auto buffer3 = stringToByteVector(buffer_str3);
-    auto result3 = extractFrameFromBuffer(buffer3);
+    auto result3 = parseMessage(buffer3);
 
     std::cout << std::holds_alternative<RedisType::BulkString>(result3->first) << std::endl;
 
@@ -34,7 +34,7 @@ int main() {
 
     std::string buffer_str4 = "*2\r\n+OK\r\n:123\r\n";
     auto buffer4 = stringToByteVector(buffer_str4);
-    auto result4 = extractFrameFromBuffer(buffer4);
+    auto result4 = parseMessage(buffer4);
 
 
     std::cout << "array " << std::holds_alternative<RedisType::Array>(result4->first) << std::endl;
@@ -42,6 +42,6 @@ int main() {
     auto firstElem = std::get<RedisType::SimpleString>(res4[0]).data;
     auto secondElem = std::get<RedisType::Integer>(res4[1]).data;
     std::cout << firstElem << " " << secondElem << std::endl;
-    
+
     return 0;
 }

@@ -24,7 +24,7 @@ static std::string extractStringFromBytes(const std::vector<uint8_t> &buffer, si
     return {buffer.begin() + static_cast<long>(start), buffer.begin() + static_cast<long>(start) + static_cast<long>(length)};
 }
 
-static std::optional<std::pair<RedisType::RedisValue, size_t>> extractFrameFromBuffer(const std::vector<uint8_t> &buffer) {
+static std::optional<std::pair<RedisType::RedisValue, size_t>> parseMessage(const std::vector<uint8_t> &buffer) {
     size_t separator = findSeparator(buffer);
 
     if (separator == std::string::npos)
@@ -73,7 +73,7 @@ static std::optional<std::pair<RedisType::RedisValue, size_t>> extractFrameFromB
             size_t currentPos = separator + CLRF_SIZE;
 
             for (int i = 0; i < length; ++i) {
-                auto nextElem = extractFrameFromBuffer({buffer.begin() + static_cast<long>(currentPos), buffer.end()});
+                auto nextElem = parseMessage({buffer.begin() + static_cast<long>(currentPos), buffer.end()});
                 if (nextElem) {
                     array.push_back(nextElem->first);
                     currentPos += nextElem->second;
