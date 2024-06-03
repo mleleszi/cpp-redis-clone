@@ -6,6 +6,8 @@
 #include <variant>
 #include <vector>
 
+
+#include "pattern_matching.h"
 #include "redis_type.h"
 
 static const std::string CLRF = "\r\n";
@@ -87,4 +89,24 @@ static std::optional<std::pair<RedisType::RedisValue, size_t>> parseMessage(cons
         default:
             return {};
     }
+}
+
+
+static std::vector<uint8_t> encode(const RedisType::RedisValue &message) {
+    std::vector<uint8_t> encoded;
+
+    std::visit(overloaded{
+                       [&encoded](const RedisType::SimpleString &simpleString) {
+                           auto length = simpleString.data.size();
+                           auto encodedString = "+" + std::to_string(length) + simpleString.data + CLRF;
+                           encoded = stringToByteVector(encodedString);
+                       },
+                       [](const RedisType::SimpleError &simpleError) {},
+                       [](const RedisType::Integer &integer) {},
+                       [](const RedisType::BulkString &bulkString) {},
+                       [](const RedisType::Array &array) {},
+               },
+               message);
+
+    return encoded;
 }

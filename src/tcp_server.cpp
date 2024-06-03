@@ -1,0 +1,107 @@
+#include <algorithm>
+#include <arpa/inet.h>
+#include <array>
+#include <cstdlib>
+#include <iostream>
+#include <ostream>
+#include <sstream>
+#include <string>
+#include <sys/socket.h>
+#include <unistd.h>
+#include <vector>
+
+
+#include "controller.h"
+#include "parse.h"
+#include "tcp_server.h"
+
+TCPServer::TCPServer(const Controller &controller) : controller{controller} {
+    m_serverFD = socket(AF_INET, SOCK_STREAM, 0);
+
+    if (m_serverFD < 0) {
+        throw std::runtime_error("Failed to create server socket!");
+    }
+
+    int reuse = 1;
+    if (setsockopt(m_serverFD, SOL_SOCKET, SO_REUSEPORT, &reuse, sizeof(reuse)) <
+        0) {
+        throw std::runtime_error("Setsockopt failed!");
+    }
+}
+
+void TCPServer::start(const std::string &address = "0.0.0.0", int port = 6379) {
+    struct sockaddr_in server_addr {};
+    server_addr.sin_family = AF_INET;
+    server_addr.sin_addr.s_addr = INADDR_ANY;// TODO: set address
+    server_addr.sin_port = htons(port);
+
+    if (bind(m_serverFD, (struct sockaddr *) &server_addr,
+             sizeof(server_addr)) != 0) {
+        throw std::runtime_error("Port " + std::to_string(port) + " already in use!");
+    }
+
+    int connection_backlog = 5;
+    if (listen(m_serverFD, connection_backlog) != 0) {
+        throw std::runtime_error("Listen failed!");
+    }
+
+    while (true) {
+        // accept
+        struct sockaddr_in client_addr = {};
+        socklen_t socklen = sizeof(client_addr);
+        int connFD = accept(m_serverFD, (struct sockaddr *) &client_addr, &socklen);
+        if (connFD < 0) {
+            continue;// error
+        }
+
+        handleRequest(connFD);
+
+        close(connFD);
+    }
+}
+
+void TCPServer::handleRequest(int connFD) {
+    std::vector<uint8_t> buffer;
+
+    while (true) {
+        std::vector<uint8_t> data(RECV_SIZE);
+
+        ssize_t bytes_received = recv(connFD, data.data(), RECV_SIZE, 0);
+
+        if (bytes_received <= 0) {
+            break;
+        }
+
+        buffer.insert(buffer.end(), data.begin(), data.begin() + bytes_received);
+
+        auto [message, length] = *parseMessage(buffer);
+
+        if (!std::holds_alternative<RedisType::Array>(message)) {
+            break;
+        }
+
+        auto array = std::get<RedisType::Array>(message).data;
+
+        if (!array) {
+            break;
+        }
+
+        std::vector<RedisType::BulkString> command;
+
+        bool err = false;
+        for (const auto &item: *array) {
+            if (!std::holds_alternative<RedisType::BulkString>(item)) {
+                err = true;
+                break;
+            }
+            command.push_back(std::get<RedisType::BulkString>(item));
+        }
+
+        if (err) {
+            break;
+        }
+
+        RedisType::RedisValue res = controller.handleCommand(command);
+        // TODO: encode and send
+    }
+}
