@@ -18,13 +18,10 @@
 TCPServer::TCPServer(const Controller &controller) : controller{controller} {
     m_serverFD = socket(AF_INET, SOCK_STREAM, 0);
 
-    if (m_serverFD < 0) {
-        throw std::runtime_error("Failed to create server socket!");
-    }
+    if (m_serverFD < 0) { throw std::runtime_error("Failed to create server socket!"); }
 
     int reuse = 1;
-    if (setsockopt(m_serverFD, SOL_SOCKET, SO_REUSEPORT, &reuse, sizeof(reuse)) <
-        0) {
+    if (setsockopt(m_serverFD, SOL_SOCKET, SO_REUSEPORT, &reuse, sizeof(reuse)) < 0) {
         throw std::runtime_error("Setsockopt failed!");
     }
 }
@@ -35,15 +32,12 @@ void TCPServer::start(const std::string &address = "0.0.0.0", int port = 6379) {
     server_addr.sin_addr.s_addr = INADDR_ANY;// TODO: set address
     server_addr.sin_port = htons(port);
 
-    if (bind(m_serverFD, (struct sockaddr *) &server_addr,
-             sizeof(server_addr)) != 0) {
+    if (bind(m_serverFD, (struct sockaddr *) &server_addr, sizeof(server_addr)) != 0) {
         throw std::runtime_error("Port " + std::to_string(port) + " already in use!");
     }
 
     int connection_backlog = 5;
-    if (listen(m_serverFD, connection_backlog) != 0) {
-        throw std::runtime_error("Listen failed!");
-    }
+    if (listen(m_serverFD, connection_backlog) != 0) { throw std::runtime_error("Listen failed!"); }
 
     while (true) {
         // accept
@@ -68,23 +62,17 @@ void TCPServer::handleRequest(int connFD) {
 
         ssize_t bytes_received = recv(connFD, data.data(), RECV_SIZE, 0);
 
-        if (bytes_received <= 0) {
-            break;
-        }
+        if (bytes_received <= 0) { break; }
 
         buffer.insert(buffer.end(), data.begin(), data.begin() + bytes_received);
 
         auto [message, length] = *parseMessage(buffer);
 
-        if (!std::holds_alternative<RedisType::Array>(message)) {
-            break;
-        }
+        if (!std::holds_alternative<RedisType::Array>(message)) { break; }
 
         auto array = std::get<RedisType::Array>(message).data;
 
-        if (!array) {
-            break;
-        }
+        if (!array) { break; }
 
         std::vector<RedisType::BulkString> command;
 
@@ -97,11 +85,10 @@ void TCPServer::handleRequest(int connFD) {
             command.push_back(std::get<RedisType::BulkString>(item));
         }
 
-        if (err) {
-            break;
-        }
+        if (err) { break; }
 
         RedisType::RedisValue res = controller.handleCommand(command);
-        // TODO: encode and send
+        auto encoded = encode(res);
+        send(connFD, encoded.data(), encoded.size(), 0);
     }
 }

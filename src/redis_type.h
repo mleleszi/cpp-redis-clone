@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <optional>
 #include <string>
+#include <utility>
 #include <variant>
 #include <vector>
 
@@ -20,6 +21,8 @@ namespace RedisType {
     };
 
     struct SimpleError {
+        explicit SimpleError(std::string errorMsg) : data(std::move(errorMsg)) {}
+        
         std::string data;
     };
 
