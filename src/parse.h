@@ -1,7 +1,3 @@
-//
-// Created by Marcell on 02/06/2024.
-//
-
 #pragma once
 
 #include <cstdint>
@@ -54,7 +50,7 @@ static std::optional<std::pair<RedisType::RedisValue, size_t>> parseMessage(cons
             int length = std::stoi(payload);
 
             if (length == -1) {
-                return std::make_pair(RedisType::BulkString{std::nullopt},  5);
+                return std::make_pair(RedisType::BulkString{std::nullopt}, 5);
             }
 
             size_t endOfMessage = separator + 2 + length;
@@ -91,7 +87,4 @@ static std::optional<std::pair<RedisType::RedisValue, size_t>> parseMessage(cons
         default:
             return {};
     }
-
-
-    return {};
-};
+}
