@@ -164,8 +164,61 @@ TEST(ParseTests, FindSeparatorSeparatorAtEnd) {
     EXPECT_EQ(pos, 3);
 }
 
-TEST(ExtractStringFromBytesTest, ExtractStringFromBytes) {
+TEST(ParseTests, ExtractStringFromBytes) {
     std::vector<uint8_t> buffer = {'H', 'e', 'l', 'l', 'o', ' ', 'W', 'o', 'r', 'l', 'd'};
     std::string result = extractStringFromBytes(buffer, 0, 5);
     EXPECT_EQ(result, "Hello");
+}
+
+TEST(ParseTests, EncodeSimpleString) {
+    RedisType::SimpleString simpleString{"Hello"};
+    std::vector<uint8_t> expected = {'+', 'H', 'e', 'l', 'l', 'o', '\r', '\n'};
+    auto result = encode(simpleString);
+
+    EXPECT_EQ(result, expected);
+}
+
+TEST(ParseTests, EncodeInteger) {
+    RedisType::Integer integer{42};
+    std::vector<uint8_t> expected = {':', '4', '2', '\r', '\n'};
+    auto result = encode(integer);
+
+    EXPECT_EQ(result, expected);
+}
+
+TEST(ParseTests, EncodeSimpleError) {
+    RedisType::SimpleError simpleError{"Error message"};
+    std::vector<uint8_t> expected = {'-', 'E', 'r', 'r', 'o', 'r', ' ', 'm', 'e', 's', 's', 'a', 'g', 'e', '\r', '\n'};
+    auto result = encode(simpleError);
+
+    EXPECT_EQ(result, expected);
+}
+
+TEST(ParseTests, EncodeBulkString) {
+    auto str = stringToByteVector("Hello, World!");
+    RedisType::BulkString bulkString{str};
+    std::vector<uint8_t> expected = {'$', '1', '3', '\r', '\n', 'H', 'e', 'l', 'l',  'o',
+                                     ',', ' ', 'W', 'o',  'r',  'l', 'd', '!', '\r', '\n'};
+    auto result = encode(bulkString);
+
+    EXPECT_EQ(result, expected);
+}
+
+TEST(ParseTests, EncodeArray) {
+    RedisType::Array array{std::vector<RedisType::RedisValue>{
+            RedisType::SimpleString{"simple1"},
+            RedisType::BulkString{stringToByteVector("bulk1")},
+            RedisType::Integer{123},
+            RedisType::SimpleError{"error1"},
+    }};
+
+    std::vector<uint8_t> expected = {
+            '*', '4',  '\r', '\n', '+', 's', 'i', 'm', 'p', 'l',  'e',  '1',  '\r', '\n',
+            '$', '5',  '\r', '\n', 'b', 'u', 'l', 'k', '1', '\r', '\n', ':',  '1',  '2',
+            '3', '\r', '\n', '-',  'e', 'r', 'r', 'o', 'r', '1',  '\r', '\n',
+    };
+
+    auto result = encode(array);
+
+    EXPECT_EQ(result, expected);
 }
