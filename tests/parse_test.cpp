@@ -5,7 +5,7 @@ TEST(ParseTests, ParseSimpleString) {
     std::string buffer_str = "+OK\r\n";
     auto buffer = stringToByteVector(buffer_str);
     auto result = parseMessage(buffer);
-    
+
     ASSERT_TRUE(result.has_value());
     ASSERT_TRUE(std::holds_alternative<RedisType::SimpleString>(result->first));
     EXPECT_EQ(std::get<RedisType::SimpleString>(result->first).data, "OK");
@@ -110,7 +110,7 @@ TEST(ParseTests, ParseBulkStringTest) {
     EXPECT_EQ(result->second, 18);
 }
 
-TEST(ParseTests, ArrayTest) {
+TEST(ParseTests, ParseArray) {
     std::string buffer_str = "*2\r\n+OK\r\n:123\r\n";
     auto buffer = stringToByteVector(buffer_str);
     auto result = parseMessage(buffer);
@@ -127,4 +127,45 @@ TEST(ParseTests, ArrayTest) {
     EXPECT_EQ(std::get<RedisType::SimpleString>((*arrayData)[0]).data, "OK");
     EXPECT_EQ(std::get<RedisType::Integer>((*arrayData)[1]).data, 123);
     EXPECT_EQ(result->second, 15);
+}
+
+TEST(ParseTests, FindSeparatorSeparatorFound) {
+    std::string input = "AB\r\nCD";
+    std::vector<uint8_t> buffer = stringToByteVector(input);
+    size_t pos = findSeparator(buffer);
+    EXPECT_EQ(pos, 2);
+}
+
+TEST(ParseTests, FindSeparatorSeparatorNotFound) {
+    std::string input = "ABCD";
+    std::vector<uint8_t> buffer = stringToByteVector(input);
+    size_t pos = findSeparator(buffer);
+    EXPECT_EQ(pos, std::string::npos);
+}
+
+TEST(ParseTests, FindSeparatorMultipleSeparators) {
+    std::string input = "A\r\nB\r\nC";
+    std::vector<uint8_t> buffer = stringToByteVector(input);
+    size_t pos = findSeparator(buffer);
+    EXPECT_EQ(pos, 1);
+}
+
+TEST(ParseTests, FindSeparatorEmptyBuffer) {
+    std::string input = "";
+    std::vector<uint8_t> buffer = stringToByteVector(input);
+    size_t pos = findSeparator(buffer);
+    EXPECT_EQ(pos, std::string::npos);
+}
+
+TEST(ParseTests, FindSeparatorSeparatorAtEnd) {
+    std::string input = "ABC\r\n";
+    std::vector<uint8_t> buffer = stringToByteVector(input);
+    size_t pos = findSeparator(buffer);
+    EXPECT_EQ(pos, 3);
+}
+
+TEST(ExtractStringFromBytesTest, ExtractStringFromBytes) {
+    std::vector<uint8_t> buffer = {'H', 'e', 'l', 'l', 'o', ' ', 'W', 'o', 'r', 'l', 'd'};
+    std::string result = extractStringFromBytes(buffer, 0, 5);
+    EXPECT_EQ(result, "Hello");
 }
