@@ -54,7 +54,7 @@ static std::optional<std::pair<RedisType::RedisValue, size_t>> parseMessage(cons
             int length = std::stoi(payload);
 
             if (length == -1) {
-                return std::make_pair(RedisType::BulkString{std::nullopt}, separator + 5);
+                return std::make_pair(RedisType::BulkString{std::nullopt},  5);
             }
 
             size_t endOfMessage = separator + 2 + length;
@@ -74,10 +74,10 @@ static std::optional<std::pair<RedisType::RedisValue, size_t>> parseMessage(cons
 
             std::vector<RedisType::RedisValue> array;
 
-            size_t currentPos = separator + CLRF_SIZE;
+            size_t currentPos = separator;
 
             for (int i = 0; i < length; ++i) {
-                auto nextElem = parseMessage({buffer.begin() + static_cast<long>(currentPos), buffer.end()});
+                auto nextElem = parseMessage({buffer.begin() + static_cast<long>(currentPos + CLRF_SIZE), buffer.end()});
                 if (nextElem) {
                     array.push_back(nextElem->first);
                     currentPos += nextElem->second;
