@@ -24,8 +24,8 @@ RedisType::RedisValue Controller::handleCommand(const std::vector<RedisType::Bul
     auto commandType = extractStringFromBytes(*command[0].data, 0, (*command[0].data).size());
 
     std::transform(commandType.begin(), commandType.end(), commandType.begin(), ::toupper);
-
-    if (commandType == "ECHO") handleEcho(command);
+    
+    if (commandType == "ECHO") { return handleEcho(command); }
 
     return RedisType::SimpleError("ERR unsupported command");
 }
