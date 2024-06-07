@@ -60,20 +60,26 @@ void TCPServer::handleRequest(int connFD) {
     while (true) {
         std::vector<uint8_t> data(RECV_SIZE);
 
+        // Read from socket
         ssize_t bytes_received = recv(connFD, data.data(), RECV_SIZE, 0);
 
         if (bytes_received <= 0) { break; }
 
         buffer.insert(buffer.end(), data.begin(), data.begin() + bytes_received);
 
+        // Parse message
         auto [message, length] = *parseMessage(buffer);
 
         if (!std::holds_alternative<RedisType::Array>(message)) { break; }
+
+        // If successfully parsed message, then erase
+        buffer.erase(buffer.begin(), buffer.begin() + static_cast<long>(length));
 
         auto array = std::get<RedisType::Array>(message).data;
 
         if (!array) { break; }
 
+        // Convert message to internal command format
         std::vector<RedisType::BulkString> command;
 
         bool err = false;
@@ -87,8 +93,11 @@ void TCPServer::handleRequest(int connFD) {
 
         if (err) { break; }
 
+        // Handle command
         RedisType::RedisValue res = controller.handleCommand(command);
         auto encoded = encode(res);
+
+        // Send response
         send(connFD, encoded.data(), encoded.size(), 0);
     }
 }
