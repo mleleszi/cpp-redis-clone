@@ -43,10 +43,18 @@ TCPServer::TCPServer(const Controller &controller) : controller{controller} {
     while (true) {
         struct sockaddr_in client_addr = {};
         socklen_t socklen = sizeof(client_addr);
+        
         int connFD = accept(m_serverFD, (struct sockaddr *) &client_addr, &socklen);
-        std::cout << "Client connected" << std::endl;
+
         if (connFD < 0) {
             continue;// error
+        }
+
+        char clientIP[INET_ADDRSTRLEN];
+
+        if (inet_ntop(AF_INET, &(client_addr.sin_addr), clientIP, INET_ADDRSTRLEN) != nullptr) {
+            int clientPort = ntohs(client_addr.sin_port);
+            spdlog::info("Client connected from {}:{}", clientIP, clientPort);
         }
 
         handleRequest(connFD);
