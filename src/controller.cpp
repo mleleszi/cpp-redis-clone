@@ -17,14 +17,12 @@ std::ostream &operator<<(std::ostream &os, const RedisType::BulkString &bulkStri
 
 
 RedisType::RedisValue Controller::handleCommand(const std::vector<RedisType::BulkString> &command) {
-    for (const auto &item: command) { std::cout << item << std::endl; }
-
     if (command.empty()) { return RedisType::SimpleError("ERR empty command"); }
 
     auto commandType = extractStringFromBytes(*command[0].data, 0, (*command[0].data).size());
 
     std::transform(commandType.begin(), commandType.end(), commandType.begin(), ::toupper);
-    
+
     if (commandType == "ECHO") { return handleEcho(command); }
 
     return RedisType::SimpleError("ERR unsupported command");
