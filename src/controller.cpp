@@ -1,7 +1,5 @@
-
 #include <algorithm>
 #include <iostream>
-
 
 #include "controller.h"
 #include "parse.h"
@@ -16,7 +14,7 @@ RedisType::RedisValue Controller::handleCommand(const std::vector<RedisType::Bul
     std::transform(commandType.begin(), commandType.end(), commandType.begin(), ::toupper);
 
     if (commandType == "ECHO") handleEcho(command);
-    
+
     return RedisType::SimpleError("ERR unsupported command");
 }
 RedisType::RedisValue Controller::handleEcho(const std::vector<RedisType::BulkString> &command) {

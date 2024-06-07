@@ -26,7 +26,7 @@ TCPServer::TCPServer(const Controller &controller) : controller{controller} {
     }
 }
 
-void TCPServer::start(const std::string &address = "0.0.0.0", int port = 6379) {
+[[noreturn]] void TCPServer::start(const std::string &address = "0.0.0.0", int port = 6379) {
     struct sockaddr_in server_addr {};
     server_addr.sin_family = AF_INET;
     server_addr.sin_addr.s_addr = INADDR_ANY;// TODO: set address
@@ -40,10 +40,10 @@ void TCPServer::start(const std::string &address = "0.0.0.0", int port = 6379) {
     if (listen(m_serverFD, connection_backlog) != 0) { throw std::runtime_error("Listen failed!"); }
 
     while (true) {
-        // accept
         struct sockaddr_in client_addr = {};
         socklen_t socklen = sizeof(client_addr);
         int connFD = accept(m_serverFD, (struct sockaddr *) &client_addr, &socklen);
+        std::cout << "Client connected" << std::endl;
         if (connFD < 0) {
             continue;// error
         }

@@ -8,7 +8,7 @@ class TCPServer {
 public:
     explicit TCPServer(const Controller &controller);
     [[noreturn]] void start(const std::string &address, int port);
-    [[noreturn]] void handleRequest(int conn_fd);
+    void handleRequest(int conn_fd);
 
 private:
     int m_serverFD;
