@@ -22,7 +22,7 @@ namespace RedisType {
 
     struct SimpleError {
         explicit SimpleError(std::string errorMsg) : data(std::move(errorMsg)) {}
-        
+
         std::string data;
     };
 
