@@ -6,3 +6,6 @@ add_executable(cpp_redis main.cpp
         tcp_server.cpp
         tcp_server.h
         overloaded.h)
+
+
+target_link_libraries(cpp_redis PRIVATE spdlog::spdlog_header_only)

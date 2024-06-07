@@ -1,15 +1,14 @@
 #include <algorithm>
 #include <arpa/inet.h>
-#include <array>
 #include <cstdlib>
 #include <iostream>
 #include <ostream>
-#include <sstream>
 #include <string>
 #include <sys/socket.h>
 #include <unistd.h>
 #include <vector>
 
+#include "spdlog/spdlog.h"
 
 #include "controller.h"
 #include "parse.h"
@@ -38,6 +37,8 @@ TCPServer::TCPServer(const Controller &controller) : controller{controller} {
 
     int connection_backlog = 5;
     if (listen(m_serverFD, connection_backlog) != 0) { throw std::runtime_error("Listen failed!"); }
+
+    spdlog::info("Listening on port {}", port);
 
     while (true) {
         struct sockaddr_in client_addr = {};
