@@ -18,7 +18,7 @@ FetchContent_MakeAvailable(spdlog)
 add_library(GTest::GTest INTERFACE IMPORTED)
 target_link_libraries(GTest::GTest INTERFACE gtest_main)
 
-add_executable(redis_test parse_test.cpp
+add_executable(redis_test protocol_test.cpp
         controller_test.cpp
         ${CMAKE_SOURCE_DIR}/src/controller.cpp #TODO: refactor
 )
