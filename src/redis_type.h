@@ -14,6 +14,10 @@ namespace RedisType {
 
     struct BulkString {
         std::optional<std::vector<uint8_t>> data;
+
+        BulkString() = default;
+        BulkString(const std::optional<std::vector<uint8_t>> &vec) : data(vec) {}
+        BulkString(const std::string &str) : data(std::vector<uint8_t>(str.begin(), str.end())) {}
     };
 
     struct Integer {
