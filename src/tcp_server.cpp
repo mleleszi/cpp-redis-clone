@@ -11,7 +11,7 @@
 #include "spdlog/spdlog.h"
 
 #include "controller.h"
-#include "parse.h"
+#include "protocol.h"
 #include "tcp_server.h"
 
 TCPServer::TCPServer(const Controller &controller) : controller{controller} {
@@ -43,7 +43,7 @@ TCPServer::TCPServer(const Controller &controller) : controller{controller} {
     while (true) {
         struct sockaddr_in client_addr = {};
         socklen_t socklen = sizeof(client_addr);
-        
+
         int connFD = accept(m_serverFD, (struct sockaddr *) &client_addr, &socklen);
 
         if (connFD < 0) {

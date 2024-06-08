@@ -1,4 +1,4 @@
-#include "parse.h"
+#include "protocol.h"
 #include "gtest/gtest.h"
 
 TEST(ParseTests, ParseSimpleString) {
