@@ -23,7 +23,11 @@ RedisType::RedisValue Controller::handleCommand(const std::vector<RedisType::Bul
 
     std::transform(commandType.begin(), commandType.end(), commandType.begin(), ::toupper);
 
-    if (commandType == "ECHO") { return handleEcho(command); }
+    if (commandType == "ECHO") {
+        return handleEcho(command);
+    } else if (commandType == "PING") {
+        return handlePing(command);
+    }
 
     return RedisType::SimpleError("ERR unsupported command");
 }
@@ -32,4 +36,10 @@ RedisType::RedisValue Controller::handleEcho(const std::vector<RedisType::BulkSt
     if (command.size() != 2) { return RedisType::SimpleError("ERR wrong number of arguments for 'echo' command"); }
 
     return command[1];
+}
+RedisType::RedisValue Controller::handlePing(const std::vector<RedisType::BulkString> &command) {
+    if (command.size() > 2) { return RedisType::SimpleError("ERR wrong number of arguments for 'ping' command"); }
+    if (command.size() == 2) { return command[1]; }
+
+    return RedisType::BulkString("PONG");
 }

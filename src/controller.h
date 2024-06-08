@@ -8,4 +8,5 @@ public:
 
 private:
     RedisType::RedisValue handleEcho(const std::vector<RedisType::BulkString> &command);
+    RedisType::RedisValue handlePing(const std::vector<RedisType::BulkString> &command);
 };
