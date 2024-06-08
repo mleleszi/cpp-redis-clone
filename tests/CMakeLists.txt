@@ -8,6 +8,13 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(googletest)
 
+FetchContent_Declare(
+        spdlog
+        GIT_REPOSITORY https://github.com/gabime/spdlog.git
+        GIT_TAG v1.14.1
+)
+FetchContent_MakeAvailable(spdlog)
+
 add_library(GTest::GTest INTERFACE IMPORTED)
 target_link_libraries(GTest::GTest INTERFACE gtest_main)
 
