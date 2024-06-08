@@ -60,7 +60,7 @@ TEST(ControllerTests, HandlePINGNoArg) {
     std::vector<RedisType::BulkString> command{RedisType::BulkString("PING")};
     auto result = controller.handleCommand(command);
 
-    ASSERT_TRUE(std::holds_alternative<RedisType::BulkString>(result));
-    auto bulkData = *std::get<RedisType::BulkString>(result).data;
-    ASSERT_EQ(bulkData, stringToByteVector("PONG"));
+    ASSERT_TRUE(std::holds_alternative<RedisType::SimpleString>(result));
+    auto str = std::get<RedisType::SimpleString>(result).data;
+    ASSERT_EQ(str, "PONG");
 }

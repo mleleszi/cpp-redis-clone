@@ -10,6 +10,8 @@
 namespace RedisType {
     struct SimpleString {
         std::string data;
+
+        explicit SimpleString(std::string data) : data(std::move(data)) {}
     };
 
     struct BulkString {

@@ -45,7 +45,7 @@ RedisType::RedisValue Controller::handlePing(const std::vector<RedisType::BulkSt
     if (command.size() > 2) { return RedisType::SimpleError("ERR wrong number of arguments for 'ping' command"); }
     if (command.size() == 2) { return command[1]; }
 
-    return RedisType::BulkString("PONG");
+    return RedisType::SimpleString("PONG");
 }
 RedisType::RedisValue Controller::handleSet(const std::vector<RedisType::BulkString> &command) {
     if (command.size() != 3) { return RedisType::SimpleError("ERR wrong number of arguments for 'set' command"); }
@@ -55,11 +55,11 @@ RedisType::RedisValue Controller::handleSet(const std::vector<RedisType::BulkStr
 
     dataStore.store[key] = val;
 
-    return RedisType::BulkString("OK");
+    return RedisType::SimpleString("OK");
 }
 RedisType::RedisValue Controller::handleGet(const std::vector<RedisType::BulkString> &command) {
     if (command.size() != 2) { return RedisType::SimpleError("ERR wrong number of arguments for 'get' command"); }
-    
+
     auto key = extractStringFromBytes(*command[1].data, 0, (*command[0].data).size());
 
     auto val = dataStore.store[key];
