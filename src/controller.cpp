@@ -53,7 +53,7 @@ RedisType::RedisValue Controller::handleSet(const std::vector<RedisType::BulkStr
     auto key = extractStringFromBytes(*command[1].data, 0, (*command[0].data).size());
     auto val = extractStringFromBytes(*command[2].data, 0, (*command[0].data).size());
 
-    dataStore.store[key] = val;
+    dataStore.set(key, val);
 
     return RedisType::SimpleString("OK");
 }
@@ -62,7 +62,9 @@ RedisType::RedisValue Controller::handleGet(const std::vector<RedisType::BulkStr
 
     auto key = extractStringFromBytes(*command[1].data, 0, (*command[0].data).size());
 
-    auto val = dataStore.store[key];
+    auto valueOpt = dataStore.get(key);
 
-    return RedisType::BulkString(val);
+    if (valueOpt) { return RedisType::BulkString(*valueOpt); }
+
+    return RedisType::BulkString();
 }
