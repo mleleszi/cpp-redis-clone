@@ -21,5 +21,15 @@ TEST(ControllerTests, HandleECHO) {
 
     ASSERT_TRUE(std::holds_alternative<RedisType::BulkString>(result));
     auto bulkData = *std::get<RedisType::BulkString>(result).data;
-    ASSERT_EQ(bulkData, stringToByteVector("ERR wrong number of arguments for 'echo' command"));
+    ASSERT_EQ(bulkData, stringToByteVector("Hello"));
+}
+
+TEST(ControllerTests, HandleECHOIgnoreCase) {
+    Controller controller;
+    std::vector<RedisType::BulkString> command{RedisType::BulkString("EcHo"), RedisType::BulkString("Hello")};
+    auto result = controller.handleCommand(command);
+
+    ASSERT_TRUE(std::holds_alternative<RedisType::BulkString>(result));
+    auto bulkData = *std::get<RedisType::BulkString>(result).data;
+    ASSERT_EQ(bulkData, stringToByteVector("Hello"));
 }
