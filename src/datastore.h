@@ -15,6 +15,8 @@ public:
 
     void set(const std::string &key, const std::string &val) { store[key] = val; }
 
+    bool exists(const std::string &key) { return store.contains(key); }
+
 
 private:
     std::unordered_map<std::string, std::string> store;

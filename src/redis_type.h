@@ -24,6 +24,7 @@ namespace RedisType {
 
     struct Integer {
         std::int64_t data;
+        Integer(const int64_t &data) : data(data) {}
     };
 
     struct SimpleError {

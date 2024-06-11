@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <iostream>
+#include <numeric>
 
 #include "controller.h"
 #include "protocol.h"
@@ -31,6 +32,8 @@ RedisType::RedisValue Controller::handleCommand(const std::vector<RedisType::Bul
         return handleSet(command);
     } else if (commandType == "GET") {
         return handleGet(command);
+    } else if (commandType == "EXISTS") {
+        return handleExists(command);
     }
 
     return RedisType::SimpleError("ERR unsupported command");
@@ -57,6 +60,9 @@ RedisType::RedisValue Controller::handleSet(const std::vector<RedisType::BulkStr
 
     return RedisType::SimpleString("OK");
 }
+
+// TODO: WORKS INCORRECTLY FOR INTEGERS
+// TODO: set and get works incorrectly when ends with number??
 RedisType::RedisValue Controller::handleGet(const std::vector<RedisType::BulkString> &command) {
     if (command.size() != 2) { return RedisType::SimpleError("ERR wrong number of arguments for 'get' command"); }
 
@@ -67,4 +73,15 @@ RedisType::RedisValue Controller::handleGet(const std::vector<RedisType::BulkStr
     if (valueOpt) { return RedisType::BulkString(*valueOpt); }
 
     return RedisType::BulkString();
+}
+RedisType::RedisValue Controller::handleExists(const std::vector<RedisType::BulkString> &command) {
+    if (command.size() < 2) { return RedisType::SimpleError("ERR wrong number of arguments for 'exists' command"); }
+
+    int count =
+            std::accumulate(command.begin() + 1, command.end(), 0, [this](int acc, const RedisType::BulkString &cmd) {
+                auto key = extractStringFromBytes(*cmd.data, 0, cmd.data->size());
+                return acc + (dataStore.exists(key) ? 1 : 0);
+            });
+
+    return RedisType::Integer(count);
 }
