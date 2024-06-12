@@ -25,6 +25,7 @@ TCPServer::TCPServer(const Controller &controller) : controller{controller} {
     }
 }
 
+// TODO: why can it start if the port is already taken?
 [[noreturn]] void TCPServer::start(const std::string &address = "0.0.0.0", int port = 6379) {
     struct sockaddr_in server_addr {};
     server_addr.sin_family = AF_INET;

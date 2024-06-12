@@ -143,3 +143,27 @@ TEST(ControllerTests, HandleGET) {
 
     ASSERT_EQ(bulkData, stringToByteVector("val"));
 }
+
+TEST(ControllerTests, HandleGETEndWithNum) {
+    Controller controller;
+
+    std::vector<RedisType::BulkString> setCommand{
+            RedisType::BulkString("SET"),
+            RedisType::BulkString("key2"),
+            RedisType::BulkString("val2"),
+    };
+
+    controller.handleCommand(setCommand);
+
+    std::vector<RedisType::BulkString> getCommand{
+            RedisType::BulkString("GET"),
+            RedisType::BulkString("key2"),
+    };
+
+    auto result = controller.handleCommand(getCommand);
+
+    ASSERT_TRUE(std::holds_alternative<RedisType::BulkString>(result));
+    auto bulkData = *std::get<RedisType::BulkString>(result).data;
+
+    ASSERT_EQ(bulkData, stringToByteVector("val2"));
+}

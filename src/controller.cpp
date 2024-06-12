@@ -53,8 +53,8 @@ RedisType::RedisValue Controller::handlePing(const std::vector<RedisType::BulkSt
 RedisType::RedisValue Controller::handleSet(const std::vector<RedisType::BulkString> &command) {
     if (command.size() != 3) { return RedisType::SimpleError("ERR wrong number of arguments for 'set' command"); }
 
-    auto key = extractStringFromBytes(*command[1].data, 0, (*command[0].data).size());
-    auto val = extractStringFromBytes(*command[2].data, 0, (*command[0].data).size());
+    auto key = extractStringFromBytes(*command[1].data, 0, (*command[1].data).size());
+    auto val = extractStringFromBytes(*command[2].data, 0, (*command[2].data).size());
 
     dataStore.set(key, val);
 
@@ -62,11 +62,10 @@ RedisType::RedisValue Controller::handleSet(const std::vector<RedisType::BulkStr
 }
 
 // TODO: WORKS INCORRECTLY FOR INTEGERS
-// TODO: set and get works incorrectly when ends with number??
 RedisType::RedisValue Controller::handleGet(const std::vector<RedisType::BulkString> &command) {
     if (command.size() != 2) { return RedisType::SimpleError("ERR wrong number of arguments for 'get' command"); }
 
-    auto key = extractStringFromBytes(*command[1].data, 0, (*command[0].data).size());
+    auto key = extractStringFromBytes(*command[1].data, 0, (*command[1].data).size());
 
     auto valueOpt = dataStore.get(key);
 
