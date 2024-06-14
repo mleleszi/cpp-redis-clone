@@ -8,7 +8,6 @@
 #include "redis_type.h"
 
 
-// TODO: log req/resp
 RedisType::RedisValue Controller::handleCommand(const std::vector<RedisType::BulkString> &command) {
     if (command.empty()) { return RedisType::SimpleError("ERR empty command"); }
 
