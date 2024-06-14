@@ -1,10 +1,10 @@
 #include <algorithm>
 #include <arpa/inet.h>
 #include <cstdlib>
-#include <iostream>
 #include <ostream>
 #include <string>
 #include <sys/socket.h>
+#include <thread>
 #include <unistd.h>
 #include <vector>
 
@@ -14,7 +14,7 @@
 #include "protocol.h"
 #include "tcp_server.h"
 
-TCPServer::TCPServer(const Controller &controller) : controller{controller} {
+TCPServer::TCPServer() : controller{} {
     m_serverFD = socket(AF_INET, SOCK_STREAM, 0);
 
     if (m_serverFD < 0) { throw std::runtime_error("Failed to create server socket!"); }
@@ -58,9 +58,7 @@ TCPServer::TCPServer(const Controller &controller) : controller{controller} {
             spdlog::info("Client connected from {}:{}", clientIP, clientPort);
         }
 
-        handleRequest(connFD);
-
-        close(connFD);
+        std::thread(&TCPServer::handleRequest, this, connFD).detach();
     }
 }
 
@@ -73,21 +71,30 @@ void TCPServer::handleRequest(int connFD) {
         // Read from socket
         ssize_t bytes_received = recv(connFD, data.data(), RECV_SIZE, 0);
 
-        if (bytes_received <= 0) { break; }
+        if (bytes_received <= 0) {
+            close(connFD);
+            break;
+        }
 
         buffer.insert(buffer.end(), data.begin(), data.begin() + bytes_received);
 
         // Parse message
         auto [message, length] = *parseMessage(buffer);
 
-        if (!std::holds_alternative<RedisType::Array>(message)) { break; }
+        if (!std::holds_alternative<RedisType::Array>(message)) {
+            close(connFD);
+            break;
+        }
 
         // If successfully parsed message, then erase
         buffer.erase(buffer.begin(), buffer.begin() + static_cast<long>(length));
 
         auto array = std::get<RedisType::Array>(message).data;
 
-        if (!array) { break; }
+        if (!array) {
+            close(connFD);
+            break;
+        }
 
         // Convert message to internal command format
         std::vector<RedisType::BulkString> command;
@@ -101,7 +108,10 @@ void TCPServer::handleRequest(int connFD) {
             command.push_back(std::get<RedisType::BulkString>(item));
         }
 
-        if (err) { break; }
+        if (err) {
+            close(connFD);
+            break;
+        }
 
         // Handle command
         RedisType::RedisValue res = controller.handleCommand(command);

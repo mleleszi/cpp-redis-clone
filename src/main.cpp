@@ -3,7 +3,6 @@
 #include "tcp_server.h"
 
 int main() {
-    Controller controller;
-    TCPServer server{controller};
+    TCPServer server;
     server.start("0.0.0.0", 6379);
 }

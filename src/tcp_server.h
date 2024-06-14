@@ -6,7 +6,7 @@
 
 class TCPServer {
 public:
-    explicit TCPServer(const Controller &controller);
+    explicit TCPServer();
     [[noreturn]] void start(const std::string &address, int port);
     void handleRequest(int conn_fd);
 
