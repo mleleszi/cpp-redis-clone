@@ -13,7 +13,7 @@ private:
     RedisType::RedisValue handleSet(const std::vector<RedisType::BulkString> &command);
     RedisType::RedisValue handleGet(const std::vector<RedisType::BulkString> &command);
     RedisType::RedisValue handleExists(const std::vector<RedisType::BulkString> &command);
-
-
+    RedisType::RedisValue handleConfig(const std::vector<RedisType::BulkString> &command);
+    
     DataStore dataStore;
 };

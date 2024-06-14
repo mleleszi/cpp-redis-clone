@@ -1,7 +1,6 @@
 #include <algorithm>
 #include <arpa/inet.h>
 #include <cstdlib>
-#include <ostream>
 #include <string>
 #include <sys/socket.h>
 #include <thread>
@@ -12,6 +11,7 @@
 
 #include "controller.h"
 #include "protocol.h"
+#include "redis_type.h"
 #include "tcp_server.h"
 
 TCPServer::TCPServer() : controller{} {
@@ -96,6 +96,8 @@ void TCPServer::handleRequest(int connFD) {
             break;
         }
 
+        //        spdlog::info("Test {}", array);
+
         // Convert message to internal command format
         std::vector<RedisType::BulkString> command;
 
@@ -116,6 +118,7 @@ void TCPServer::handleRequest(int connFD) {
         // Handle command
         RedisType::RedisValue res = controller.handleCommand(command);
         auto encoded = encode(res);
+        spdlog::info("Request: {}, Response: {}", std::get<RedisType::Array>(message), res);
 
         // Send response
         send(connFD, encoded.data(), encoded.size(), 0);

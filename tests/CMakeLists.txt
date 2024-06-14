@@ -20,7 +20,7 @@ target_link_libraries(GTest::GTest INTERFACE gtest_main)
 
 add_executable(redis_test protocol_test.cpp
         controller_test.cpp
-        ${CMAKE_SOURCE_DIR}/src/controller.cpp #TODO: refactor
+        ${CMAKE_SOURCE_DIR}/src/controller.cpp     #TODO: refactor
 )
 
 target_link_libraries(redis_test

@@ -1,5 +1,6 @@
 # TODO
 
+- DEBUG LOGS
 - allow multiple connections
     - multi hreaded: implement thread pool from scratch
         - look into std::shared_mutex
@@ -11,3 +12,4 @@
 - implement hasmap from scratch
 - expiry
 - support more commands
+- write ahead log -> persistence to disk

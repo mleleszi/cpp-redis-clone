@@ -2,21 +2,13 @@
 #include <iostream>
 #include <numeric>
 
+
 #include "controller.h"
 #include "protocol.h"
 #include "redis_type.h"
 
 
-std::ostream &operator<<(std::ostream &os, const RedisType::BulkString &bulkString) {
-    if (bulkString.data) {
-        for (auto byte: bulkString.data.value()) { os << static_cast<char>(byte); }
-    } else {
-        os << "nil";
-    }
-    return os;
-}
-
-
+// TODO: log req/resp
 RedisType::RedisValue Controller::handleCommand(const std::vector<RedisType::BulkString> &command) {
     if (command.empty()) { return RedisType::SimpleError("ERR empty command"); }
 
@@ -34,6 +26,8 @@ RedisType::RedisValue Controller::handleCommand(const std::vector<RedisType::Bul
         return handleGet(command);
     } else if (commandType == "EXISTS") {
         return handleExists(command);
+    } else if (commandType == "CONFIG") {
+        return handleConfig(command);
     }
 
     return RedisType::SimpleError("ERR unsupported command");
@@ -61,7 +55,6 @@ RedisType::RedisValue Controller::handleSet(const std::vector<RedisType::BulkStr
     return RedisType::SimpleString("OK");
 }
 
-// TODO: WORKS INCORRECTLY FOR INTEGERS
 RedisType::RedisValue Controller::handleGet(const std::vector<RedisType::BulkString> &command) {
     if (command.size() != 2) { return RedisType::SimpleError("ERR wrong number of arguments for 'get' command"); }
 
@@ -83,4 +76,8 @@ RedisType::RedisValue Controller::handleExists(const std::vector<RedisType::Bulk
             });
 
     return RedisType::Integer(count);
+}
+
+RedisType::RedisValue Controller::handleConfig(const std::vector<RedisType::BulkString> &command) {
+    return RedisType::Array();
 }
