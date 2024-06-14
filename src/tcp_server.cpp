@@ -25,7 +25,6 @@ TCPServer::TCPServer() : controller{} {
     }
 }
 
-// TODO: why can it start if the port is already taken?
 [[noreturn]] void TCPServer::start(const std::string &address = "0.0.0.0", int port = 6379) {
     struct sockaddr_in server_addr {};
     server_addr.sin_family = AF_INET;
@@ -36,7 +35,7 @@ TCPServer::TCPServer() : controller{} {
         throw std::runtime_error("Port " + std::to_string(port) + " already in use!");
     }
 
-    int connection_backlog = 5;
+    int connection_backlog = 128;
     if (listen(m_serverFD, connection_backlog) != 0) { throw std::runtime_error("Listen failed!"); }
 
     spdlog::info("Listening on port {}", port);
@@ -118,7 +117,7 @@ void TCPServer::handleRequest(int connFD) {
         // Handle command
         RedisType::RedisValue res = controller.handleCommand(command);
         auto encoded = encode(res);
-        spdlog::info("Request: {}, Response: {}", std::get<RedisType::Array>(message), res);
+        spdlog::debug("Request: {}, Response: {}", std::get<RedisType::Array>(message), res);
 
         // Send response
         send(connFD, encoded.data(), encoded.size(), 0);

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "controller.h"
+#include <atomic>
 #include <string>
 
 
@@ -13,7 +14,7 @@ public:
 private:
     int m_serverFD;
     Controller controller;
-
+    
     static constexpr size_t RECV_SIZE = 2048;
 };
 

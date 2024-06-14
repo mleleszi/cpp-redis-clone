@@ -10,4 +10,10 @@ add_executable(cpp_redis main.cpp
         datastore.cpp)
 
 
+if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+    target_compile_definitions(cpp_redis PRIVATE SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_DEBUG)
+elseif (CMAKE_BUILD_TYPE STREQUAL "Release")
+    target_compile_definitions(cpp_redis PRIVATE SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_INFO)
+endif ()
+
 target_link_libraries(cpp_redis PRIVATE spdlog::spdlog_header_only)
