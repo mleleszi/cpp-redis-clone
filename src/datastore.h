@@ -6,6 +6,7 @@
 #include <optional>
 #include <random>
 #include <string>
+#include <thread>
 #include <unordered_map>
 #include <vector>
 
@@ -63,6 +64,22 @@ public:
         }
 
         return deleted;
+    }
+
+    void startExpiryDaemon() {
+        auto backgroundThread = [this]() {
+            while (true) {
+                std::this_thread::sleep_for(std::chrono::milliseconds(100));
+                removeExpiredKeys();
+            }
+        };
+
+        std::thread(backgroundThread).detach();
+    }
+
+    int count() {
+        std::lock_guard<std::mutex> lock(mtx);
+        return store.size();
     }
 
 

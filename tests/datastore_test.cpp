@@ -47,3 +47,24 @@ TEST(DataStoreTests, RemoveExpiredKeys) {
     auto val2 = store.get("key2");
     ASSERT_FALSE(val2.has_value());
 }
+
+TEST(DataStoreTests, ExpiryDaemon) {
+    DataStore store;
+    store.startExpiryDaemon();
+
+    store.setWithExpiry("key0", "val0", std::chrono::system_clock::now() + std::chrono::milliseconds(1000));
+    store.setWithExpiry("key1", "val1", std::chrono::system_clock::now() + std::chrono::milliseconds(200));
+    store.setWithExpiry("key2", "val2", std::chrono::system_clock::now() + std::chrono::milliseconds(300));
+    store.set("key3", "val3");
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+
+    auto count = store.count();
+    ASSERT_EQ(count, 2);
+
+    auto val1 = store.get("key1");
+    ASSERT_FALSE(val1.has_value());
+
+    auto val2 = store.get("key2");
+    ASSERT_FALSE(val2.has_value());
+}
