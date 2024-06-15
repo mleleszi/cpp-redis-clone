@@ -39,6 +39,7 @@ int DataStore::count() {
 int DataStore::removeExpiredKeys() {
     std::lock_guard<std::mutex> lock(mtx);
     auto keys = getRandomKeys(20);
+    auto numKeys = keys.size();
     auto now = std::chrono::system_clock::now();
 
     int deleted = 0;
@@ -49,6 +50,7 @@ int DataStore::removeExpiredKeys() {
             store.erase(key);
             ++deleted;
         }
+        if (static_cast<float>(deleted) >= 0.25f * static_cast<float>(numKeys)) break;
     }
 
     return deleted;
