@@ -43,13 +43,46 @@ RedisType::RedisValue Controller::handlePing(const std::vector<RedisType::BulkSt
 
     return RedisType::SimpleString("PONG");
 }
+
 RedisType::RedisValue Controller::handleSet(const std::vector<RedisType::BulkString> &command) {
-    if (command.size() != 3) { return RedisType::SimpleError("ERR wrong number of arguments for 'set' command"); }
+    if (command.size() < 3 || command.size() > 5) {
+        return RedisType::SimpleError("ERR wrong number of arguments for 'set' command");
+    }
 
     auto key = extractStringFromBytes(*command[1].data, 0, (*command[1].data).size());
     auto val = extractStringFromBytes(*command[2].data, 0, (*command[2].data).size());
 
-    dataStore.set(key, val);
+    int expireTimeMillis = -1;
+    
+    for (int i = 3; i < command.size(); ++i) {
+        std::string option = extractStringFromBytes(*command[i].data, 0, (*command[i].data).size());
+        std::transform(option.begin(), option.end(), option.begin(), ::toupper);
+
+        if (option == "EX" && i + 1 < command.size()) {
+            try {
+                expireTimeMillis =
+                        std::stoi(extractStringFromBytes(*command[i + 1].data, 0, (*command[i + 1].data).size())) *
+                        1000;
+                ++i;
+            } catch (...) { return RedisType::SimpleError("ERR syntax error"); }
+        } else if (option == "PX" && i + 1 < command.size()) {
+            try {
+                expireTimeMillis =
+                        std::stoi(extractStringFromBytes(*command[i + 1].data, 0, (*command[i + 1].data).size()));
+                ++i;
+            } catch (...) { return RedisType::SimpleError("ERR syntax error"); }
+        } else {
+            return RedisType::SimpleError("ERR syntax error");
+        }
+    }
+
+
+    if (expireTimeMillis > 0) {
+        dataStore.setWithExpiry(key, val,
+                                std::chrono::system_clock::now() + std::chrono::milliseconds(expireTimeMillis));
+    } else {
+        dataStore.set(key, val);
+    }
 
     return RedisType::SimpleString("OK");
 }
