@@ -7,7 +7,9 @@ add_executable(cpp_redis main.cpp
         tcp_server.h
         overloaded.h
         datastore.h
-        datastore.cpp)
+        datastore.cpp
+        persister.h
+        persister.cpp)
 
 
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")

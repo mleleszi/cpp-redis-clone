@@ -1,11 +1,14 @@
 #pragma once
 
 #include "datastore.h"
+#include "persister.h"
 #include "redis_type.h"
+#include <optional>
 
 class Controller {
 public:
-    Controller() { dataStore.startExpiryDaemon(); }
+    Controller();
+    explicit Controller(const std::string &writeAheadLogFileName);
 
     RedisType::RedisValue handleCommand(const std::vector<RedisType::BulkString> &command);
 
@@ -18,4 +21,5 @@ private:
     RedisType::RedisValue handleConfig(const std::vector<RedisType::BulkString> &command);
 
     DataStore dataStore;
+    std::optional<WriteAheadLogPersister> persister;
 };

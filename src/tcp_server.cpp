@@ -14,7 +14,7 @@
 #include "redis_type.h"
 #include "tcp_server.h"
 
-TCPServer::TCPServer() : controller{} {
+TCPServer::TCPServer() : controller{"log.aof"} {
     m_serverFD = socket(AF_INET, SOCK_STREAM, 0);
 
     if (m_serverFD < 0) { throw std::runtime_error("Failed to create server socket!"); }
@@ -23,6 +23,8 @@ TCPServer::TCPServer() : controller{} {
     if (setsockopt(m_serverFD, SOL_SOCKET, SO_REUSEPORT, &reuse, sizeof(reuse)) < 0) {
         throw std::runtime_error("Setsockopt failed!");
     }
+
+    WriteAheadLogPersister::restoreFromFile("log.aof", controller);
 }
 
 [[noreturn]] void TCPServer::start(const std::string &address = "0.0.0.0", int port = 6379) {
@@ -99,8 +101,6 @@ void TCPServer::handleRequest(int connFD) {
             close(connFD);
             break;
         }
-
-        //        spdlog::info("Test {}", array);
 
         // Convert message to internal command format
         std::vector<RedisType::BulkString> command;

@@ -7,6 +7,11 @@
 #include "protocol.h"
 #include "redis_type.h"
 
+Controller::Controller(const std::string &writeAheadLogFileName) : persister{writeAheadLogFileName} {
+    dataStore.startExpiryDaemon();
+}
+
+Controller::Controller() { dataStore.startExpiryDaemon(); }
 
 RedisType::RedisValue Controller::handleCommand(const std::vector<RedisType::BulkString> &command) {
     if (command.empty()) { return RedisType::SimpleError("ERR empty command"); }
@@ -53,7 +58,7 @@ RedisType::RedisValue Controller::handleSet(const std::vector<RedisType::BulkStr
     auto val = extractStringFromBytes(*command[2].data, 0, (*command[2].data).size());
 
     int expireTimeMillis = -1;
-    
+
     for (int i = 3; i < command.size(); ++i) {
         std::string option = extractStringFromBytes(*command[i].data, 0, (*command[i].data).size());
         std::transform(option.begin(), option.end(), option.begin(), ::toupper);
@@ -83,6 +88,8 @@ RedisType::RedisValue Controller::handleSet(const std::vector<RedisType::BulkStr
     } else {
         dataStore.set(key, val);
     }
+
+    if (persister) { persister->writeAndFlush(fileEncode(command)); }
 
     return RedisType::SimpleString("OK");
 }

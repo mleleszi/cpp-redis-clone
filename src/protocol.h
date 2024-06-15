@@ -142,3 +142,20 @@ static std::vector<uint8_t> encode(const RedisType::RedisValue &message) {
 
     return encoded;
 }
+
+
+static std::vector<uint8_t> fileEncode(const std::vector<RedisType::BulkString> &command) {
+
+    RedisType::Array array;
+    std::vector<RedisType::RedisValue> elements;
+
+    for (const auto &item: command) {
+        RedisType::BulkString bulkString;
+        bulkString.data = item.data;
+        elements.push_back(bulkString);
+    }
+    array.data = elements;
+
+
+    return encode(array);
+}
