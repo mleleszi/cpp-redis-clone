@@ -28,7 +28,12 @@ TCPServer::TCPServer() : controller{} {
 [[noreturn]] void TCPServer::start(const std::string &address = "0.0.0.0", int port = 6379) {
     struct sockaddr_in server_addr {};
     server_addr.sin_family = AF_INET;
-    server_addr.sin_addr.s_addr = INADDR_ANY;// TODO: set address
+
+    if (address == "0.0.0.0") {
+        server_addr.sin_addr.s_addr = INADDR_ANY;
+    } else {
+        inet_pton(AF_INET, address.c_str(), &server_addr.sin_addr);
+    }
     server_addr.sin_port = htons(port);
 
     if (bind(m_serverFD, (struct sockaddr *) &server_addr, sizeof(server_addr)) != 0) {
