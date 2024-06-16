@@ -14,7 +14,7 @@
 #include "redis_type.h"
 #include "tcp_server.h"
 
-TCPServer::TCPServer() : controller{"log.aof"} {
+TCPServer::TCPServer(const std::optional<std::string> &writeAheadLogFileName) : controller{writeAheadLogFileName} {
     m_serverFD = socket(AF_INET, SOCK_STREAM, 0);
 
     if (m_serverFD < 0) { throw std::runtime_error("Failed to create server socket!"); }
@@ -24,7 +24,12 @@ TCPServer::TCPServer() : controller{"log.aof"} {
         throw std::runtime_error("Setsockopt failed!");
     }
 
-    WriteAheadLogPersister::restoreFromFile("log.aof", controller);
+    if (writeAheadLogFileName) {
+        spdlog::info("Write-Ahead Log enabled.");
+        WriteAheadLogPersister::restoreFromFile(*writeAheadLogFileName, controller);
+    } else {
+        spdlog::info("Write-Ahead Log disabled.");
+    }
 }
 
 [[noreturn]] void TCPServer::start(const std::string &address = "0.0.0.0", int port = 6379) {

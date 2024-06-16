@@ -7,7 +7,7 @@
 #include "protocol.h"
 #include "redis_type.h"
 
-Controller::Controller(const std::string &writeAheadLogFileName) : persister{writeAheadLogFileName} {
+Controller::Controller(const std::optional<std::string> &writeAheadLogFileName) : persister{writeAheadLogFileName} {
     dataStore.startExpiryDaemon();
 }
 

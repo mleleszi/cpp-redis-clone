@@ -8,7 +8,7 @@
 class Controller {
 public:
     Controller();
-    explicit Controller(const std::string &writeAheadLogFileName);
+    explicit Controller(const std::optional<std::string> &writeAheadLogFileName);
 
     RedisType::RedisValue handleCommand(const std::vector<RedisType::BulkString> &command);
     RedisType::RedisValue handleSet(const std::vector<RedisType::BulkString> &command, bool persist = false);
