@@ -25,7 +25,7 @@ RedisType::RedisValue Controller::handleCommand(const std::vector<RedisType::Bul
     } else if (commandType == "PING") {
         return handlePing(command);
     } else if (commandType == "SET") {
-        return handleSet(command);
+        return handleSet(command, true);
     } else if (commandType == "GET") {
         return handleGet(command);
     } else if (commandType == "EXISTS") {
@@ -49,7 +49,7 @@ RedisType::RedisValue Controller::handlePing(const std::vector<RedisType::BulkSt
     return RedisType::SimpleString("PONG");
 }
 
-RedisType::RedisValue Controller::handleSet(const std::vector<RedisType::BulkString> &command) {
+RedisType::RedisValue Controller::handleSet(const std::vector<RedisType::BulkString> &command, bool persist) {
     if (command.size() < 3 || command.size() > 5) {
         return RedisType::SimpleError("ERR wrong number of arguments for 'set' command");
     }
@@ -89,7 +89,7 @@ RedisType::RedisValue Controller::handleSet(const std::vector<RedisType::BulkStr
         dataStore.set(key, val);
     }
 
-    if (persister) { persister->writeAndFlush(fileEncode(command)); }
+    if (persist && persister) { persister->writeAndFlush(fileEncode(command)); }
 
     return RedisType::SimpleString("OK");
 }

@@ -14,6 +14,7 @@ void WriteAheadLogPersister::writeAndFlush(const std::vector<uint8_t> &data) {
     file.write(reinterpret_cast<const char *>(data.data()), static_cast<long>(data.size()));
     file.flush();
 }
+
 void WriteAheadLogPersister::restoreFromFile(const std::string &fileName, Controller &controller) {
     std::vector<uint8_t> buffer;
     std::ifstream file(fileName, std::ios::binary);
@@ -36,40 +37,50 @@ void WriteAheadLogPersister::restoreFromFile(const std::string &fileName, Contro
 
         buffer.insert(buffer.end(), data.begin(), data.begin() + bytes_received);
 
-        // Parse message
-        auto parsed = parseMessage(buffer);
-        if (!parsed) {
-            continue;// Wait for more data
-        }
-
-        auto [message, length] = *parsed;
-
-        if (!std::holds_alternative<RedisType::Array>(message)) { break; }
-
-        // If successfully parsed message, then erase
-        buffer.erase(buffer.begin(), buffer.begin() + static_cast<long>(length));
-
-        auto array = std::get<RedisType::Array>(message).data;
-
-        if (!array) { break; }
-
-        // Convert message to internal command format
-        std::vector<RedisType::BulkString> command;
-        bool err = false;
-        for (const auto &item: *array) {
-            if (!std::holds_alternative<RedisType::BulkString>(item)) {
-                err = true;
+        while (true) {
+            auto parsed = parseMessage(buffer);
+            if (!parsed) {
+                // No complete message in buffer, wait for more data
                 break;
             }
-            command.push_back(std::get<RedisType::BulkString>(item));
+
+            // Parse message
+            auto [message, length] = *parsed;
+
+            if (!std::holds_alternative<RedisType::Array>(message)) {
+                spdlog::error("Unexpected message type, expected RedisType::Array");
+                buffer.erase(buffer.begin(), buffer.begin() + static_cast<long>(length));
+                continue;
+            }
+
+            // If successfully parsed message, then erase from buffer
+            buffer.erase(buffer.begin(), buffer.begin() + static_cast<long>(length));
+
+            auto array = std::get<RedisType::Array>(message).data;
+
+            if (!array) { continue; }
+
+            // Convert message to internal command format
+            std::vector<RedisType::BulkString> command;
+            bool err = false;
+            for (const auto &item: *array) {
+                if (!std::holds_alternative<RedisType::BulkString>(item)) {
+                    err = true;
+                    break;
+                }
+                command.push_back(std::get<RedisType::BulkString>(item));
+            }
+
+            if (err) {
+                spdlog::error("Array contains non-BulkString items");
+                continue;
+            }
+
+            // Handle command
+            RedisType::RedisValue res = controller.handleSet(command, false);
+            auto encoded = encode(res);
+            spdlog::info("Restored: {}, Response: {}", std::get<RedisType::Array>(message), res);
         }
-
-        if (err) { break; }
-
-        // Handle command
-        RedisType::RedisValue res = controller.handleCommand(command);
-        auto encoded = encode(res);
-        spdlog::debug("Restored: {}", std::get<RedisType::Array>(message), res);
     }
 
     file.close();
