@@ -82,6 +82,8 @@ RedisType::RedisValue Controller::handleSet(const std::vector<RedisType::BulkStr
     }
 
 
+    if (persist && persister) { persister->writeAndFlush(fileEncode(command)); }
+
     if (expireTimeMillis > 0) {
         dataStore.setWithExpiry(key, val,
                                 std::chrono::system_clock::now() + std::chrono::milliseconds(expireTimeMillis));
@@ -89,7 +91,6 @@ RedisType::RedisValue Controller::handleSet(const std::vector<RedisType::BulkStr
         dataStore.set(key, val);
     }
 
-    if (persist && persister) { persister->writeAndFlush(fileEncode(command)); }
 
     return RedisType::SimpleString("OK");
 }
