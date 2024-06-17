@@ -1,17 +1,16 @@
-#include <algorithm>
 #include <arpa/inet.h>
 #include <cstdlib>
+#include <fcntl.h>
 #include <string>
 #include <sys/socket.h>
-#include <thread>
 #include <unistd.h>
+#include <unordered_map>
 #include <vector>
-
-#include "spdlog/spdlog.h"
 
 #include "controller.h"
 #include "protocol.h"
 #include "redis_type.h"
+#include "spdlog/spdlog.h"
 #include "tcp_server.h"
 
 TCPServer::TCPServer(const std::optional<std::string> &writeAheadLogFileName) : controller{writeAheadLogFileName} {
@@ -50,86 +49,142 @@ TCPServer::TCPServer(const std::optional<std::string> &writeAheadLogFileName) : 
     int connection_backlog = 128;
     if (listen(m_serverFD, connection_backlog) != 0) { throw std::runtime_error("Listen failed!"); }
 
+    // Set server socket to non-blocking mode
+    fcntl(m_serverFD, F_SETFL, O_NONBLOCK);
+
+    pollfd server_pollfd = {m_serverFD, POLLIN, 0};
+    poll_fds.push_back(server_pollfd);
+
     spdlog::info("Listening on port {}", port);
 
     while (true) {
-        struct sockaddr_in client_addr = {};
-        socklen_t socklen = sizeof(client_addr);
+        int ret = poll(poll_fds.data(), poll_fds.size(), -1);
 
-        int connFD = accept(m_serverFD, (struct sockaddr *) &client_addr, &socklen);
-
-        if (connFD < 0) {
-            continue;// error
+        if (ret < 0) {
+            spdlog::error("Poll error: {}", strerror(errno));
+            continue;
         }
 
-        char clientIP[INET_ADDRSTRLEN];
+        for (size_t i = 0; i < poll_fds.size(); ++i) {
+            if (poll_fds[i].revents & POLLIN) {
+                if (poll_fds[i].fd == m_serverFD) {
+                    // Accept new connection
+                    struct sockaddr_in client_addr = {};
+                    socklen_t socklen = sizeof(client_addr);
+                    int connFD = accept(m_serverFD, (struct sockaddr *) &client_addr, &socklen);
 
-        if (inet_ntop(AF_INET, &(client_addr.sin_addr), clientIP, INET_ADDRSTRLEN) != nullptr) {
-            int clientPort = ntohs(client_addr.sin_port);
-            spdlog::info("Client connected from {}:{}", clientIP, clientPort);
+                    if (connFD >= 0) {
+                        // Set client socket to non-blocking mode
+                        fcntl(connFD, F_SETFL, O_NONBLOCK);
+
+                        pollfd client_pollfd = {connFD, POLLIN, 0};
+                        poll_fds.push_back(client_pollfd);
+                        buffers[connFD] = std::vector<uint8_t>();
+
+                        char clientIP[INET_ADDRSTRLEN];
+                        if (inet_ntop(AF_INET, &(client_addr.sin_addr), clientIP, INET_ADDRSTRLEN) != nullptr) {
+                            int clientPort = ntohs(client_addr.sin_port);
+                            spdlog::info("Client connected from {}:{}", clientIP, clientPort);
+                        }
+                    }
+                } else {
+                    // Handle existing connection
+                    handleRequest(poll_fds[i].fd);
+
+                    // If the connection was closed, remove it from poll_fds and buffers
+                    if (poll_fds[i].fd == -1) {
+                        close(poll_fds[i].fd);
+                        poll_fds.erase(poll_fds.begin() + i);
+                        buffers.erase(poll_fds[i].fd);
+                        --i;// Adjust index after removal
+                    }
+                }
+            }
         }
-
-        std::thread(&TCPServer::handleRequest, this, connFD).detach();
     }
 }
 
 void TCPServer::handleRequest(int connFD) {
-    std::vector<uint8_t> buffer;
+    std::vector<uint8_t> &buffer = buffers[connFD];
 
-    while (true) {
-        std::vector<uint8_t> data(RECV_SIZE);
+    std::vector<uint8_t> data(RECV_SIZE);
 
-        // Read from socket
-        ssize_t bytes_received = recv(connFD, data.data(), RECV_SIZE, 0);
+    // Read from socket
+    ssize_t bytes_received = recv(connFD, data.data(), RECV_SIZE, 0);
 
-        if (bytes_received <= 0) {
+    if (bytes_received < 0) {
+        if (errno == EWOULDBLOCK || errno == EAGAIN) {
+            // No data available for now, try again later
+            return;
+        } else {
+            // Other error, close connection
+            buffers.erase(connFD);
             close(connFD);
+            connFD = -1;// Mark the connection as closed
+            return;
+        }
+    } else if (bytes_received == 0) {
+        // Connection closed by client
+        buffers.erase(connFD);
+        close(connFD);
+        connFD = -1;// Mark the connection as closed
+        return;
+    }
+
+    buffer.insert(buffer.end(), data.begin(), data.begin() + bytes_received);
+
+    // Parse message
+    auto [message, length] = *parseMessage(buffer);
+
+    if (!std::holds_alternative<RedisType::Array>(message)) {
+        buffers.erase(connFD);
+        close(connFD);
+        connFD = -1;// Mark the connection as closed
+        return;
+    }
+
+    // If successfully parsed message, then erase
+    buffer.erase(buffer.begin(), buffer.begin() + static_cast<long>(length));
+
+    auto array = std::get<RedisType::Array>(message).data;
+
+    if (!array) {
+        buffers.erase(connFD);
+        close(connFD);
+        connFD = -1;// Mark the connection as closed
+        return;
+    }
+
+    // Convert message to internal command format
+    std::vector<RedisType::BulkString> command;
+
+    bool err = false;
+    for (const auto &item: *array) {
+        if (!std::holds_alternative<RedisType::BulkString>(item)) {
+            err = true;
             break;
         }
+        command.push_back(std::get<RedisType::BulkString>(item));
+    }
 
-        buffer.insert(buffer.end(), data.begin(), data.begin() + bytes_received);
+    if (err) {
+        buffers.erase(connFD);
+        close(connFD);
+        connFD = -1;// Mark the connection as closed
+        return;
+    }
 
-        // Parse message
-        auto [message, length] = *parseMessage(buffer);
+    // Handle command
+    RedisType::RedisValue res = controller.handleCommand(command);
+    auto encoded = encode(res);
+    spdlog::debug("Request: {}, Response: {}", std::get<RedisType::Array>(message), res);
 
-        if (!std::holds_alternative<RedisType::Array>(message)) {
-            close(connFD);
-            break;
-        }
-
-        // If successfully parsed message, then erase
-        buffer.erase(buffer.begin(), buffer.begin() + static_cast<long>(length));
-
-        auto array = std::get<RedisType::Array>(message).data;
-
-        if (!array) {
-            close(connFD);
-            break;
-        }
-
-        // Convert message to internal command format
-        std::vector<RedisType::BulkString> command;
-
-        bool err = false;
-        for (const auto &item: *array) {
-            if (!std::holds_alternative<RedisType::BulkString>(item)) {
-                err = true;
-                break;
-            }
-            command.push_back(std::get<RedisType::BulkString>(item));
-        }
-
-        if (err) {
-            close(connFD);
-            break;
-        }
-
-        // Handle command
-        RedisType::RedisValue res = controller.handleCommand(command);
-        auto encoded = encode(res);
-        spdlog::debug("Request: {}, Response: {}", std::get<RedisType::Array>(message), res);
-
-        // Send response
-        send(connFD, encoded.data(), encoded.size(), 0);
+    // Send response
+    ssize_t bytes_sent = send(connFD, encoded.data(), encoded.size(), 0);
+    if (bytes_sent < 0 && (errno != EWOULDBLOCK && errno != EAGAIN)) {
+        // Error sending response
+        buffers.erase(connFD);
+        close(connFD);
+        connFD = -1;// Mark the connection as closed
     }
 }
