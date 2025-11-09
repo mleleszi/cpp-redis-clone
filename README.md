@@ -2,7 +2,7 @@
 
 ## Overview
 
-In this repo you can find a multithreaded Redis clone written in C++. It implements the Redis serialization protocol, allowing it to be used seamlessly with the Redis CLI. Still work in progress.
+In this repo you can find a multithreaded Redis clone written in C++. It implements the Redis serialization protocol, allowing it to be used with the Redis CLI. WIP.
 
 ## Features
 
@@ -15,9 +15,6 @@ In this repo you can find a multithreaded Redis clone written in C++. It impleme
 - Implemented Commands: SET, GET, ECHO, PING, EXISTS
 
 ## Building
-
-Only a C++ compiler and CMake need to be installed to build this application. The dependencies are fetched via CMake's
-FetchContent.
 
 Build and run:
 
